@@ -46,6 +46,22 @@
                 (new AuthController()) -> logout();
             });
 
+            Router::add('GET', 'Auth/forgotPassword', function() {
+                (new AuthController())->forgotPassword();
+            });
+            
+            Router::add('POST', 'Auth/forgotPassword', function() {
+                (new AuthController())->forgotPassword();
+            });
+            
+            Router::add('GET', 'Auth/resetPassword', function() {
+                (new AuthController())->resetPassword();
+            });
+            
+            Router::add('POST', 'Auth/resetPassword', function() {
+                (new AuthController())->resetPassword();
+            });
+
             /* PRODUCTOS */
             Router::add('GET', 'listProducts', function (){
                 (new ProductController())->list();
@@ -163,6 +179,56 @@
             Router::add('POST', 'changeOrderStatus', function () {
                 (new OrderController())->changeOrderStatus();
             });
+
+
+
+
+
+            Router::add('GET', 'Auth/forgotPassword', function() {
+                (new AuthController())->forgotPassword();
+            });
+            
+            Router::add('POST', 'Auth/forgotPassword', function() {
+                (new AuthController())->forgotPassword();
+            });
+            
+            Router::add('GET', 'Auth/resetPassword', function() {
+                $token = $_GET['token'] ?? null;
+                (new AuthController())->resetPassword($token);
+            });
+            
+            Router::add('POST', 'Auth/resetPassword', function() {
+                $token = $_POST['token'] ?? null;
+                (new AuthController())->resetPassword($token);
+            });
+
+            Router::add('GET', 'Auth/verifyEmail', function() {
+                $token = $_GET['token'] ?? null;
+                (new AuthController())->verifyEmail($token);
+            });
+
+            
+
+            Router::add('POST', 'placeOrder', function () {
+                (new OrderController())->placeOrder();
+            });
+    
+            Router::add('GET', 'orderSuccess', function () {
+                (new OrderController())->orderSuccess();
+            });
+    
+            Router::add('GET', 'userOrders', function () {
+                (new OrderController())->listUserOrders();
+            });
+    
+            Router::add('GET', 'adminOrders', function () {
+                (new OrderController())->listAllOrders();
+            });
+    
+            Router::add('POST', 'changeOrderStatus', function () {
+                (new OrderController())->changeOrderStatus();
+            });
+        
 
 
             Router::dispatch();

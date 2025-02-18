@@ -10,8 +10,12 @@ class User {
         private string $apellidos,
         private string $email, 
         private string $password,
-        private string $rol
-    ){}      
+        private string $rol,
+        private ?string $resetToken = null,
+        private ?int $resetTokenExpiry = null,
+        private ?string $verificationToken = null,
+        private bool $isVerified = false
+    ){}           
 
     public function setId(int $id) {
         $this->id = $id;
@@ -65,6 +69,38 @@ class User {
         return self::$errores;
     }
 
+    public function getResetToken(): ?string {
+        return $this->resetToken;
+    }
+
+    public function setResetToken(?string $resetToken): void {
+        $this->resetToken = $resetToken;
+    }
+
+    public function getResetTokenExpiry(): ?int {
+        return $this->resetTokenExpiry;
+    }
+
+    public function setResetTokenExpiry(?int $resetTokenExpiry): void {
+        $this->resetTokenExpiry = $resetTokenExpiry;
+    }
+
+    public function setVerificationToken(?string $token): void {
+        $this->verificationToken = $token;
+    }
+
+    public function getVerificationToken(): ?string {
+        return $this->verificationToken;
+    }
+
+    public function setIsVerified(bool $isVerified): void {
+        $this->isVerified = $isVerified;
+    }
+
+    public function getIsVerified(): bool {
+        return $this->isVerified;
+    }
+
     public function validation(): bool {
         self::$errores = [];
         if (empty($this->nombre)) {
@@ -101,7 +137,11 @@ class User {
             apellidos: $data['apellidos'] ?? '', 
             email: $data['email'] ?? '',
             password: $data['password'] ?? '',
-            rol: $data['rol'] ?? 'user'        
+            rol: $data['rol'] ?? 'user',
+            resetToken: $data['reset_token'] ?? null,
+            resetTokenExpiry: $data['reset_token_expiry'] ?? null,
+            verificationToken: $data['verification_token'] ?? null,
+            isVerified: $data['is_verified'] ?? false
         );
     }
 
@@ -112,7 +152,11 @@ class User {
             'apellidos' => $user->getApellidos(),
             'email' => $user->getEmail(),
             'password' => $user->getPassword(),
-            'role' => $user->getRol()  
+            'role' => $user->getRol(),
+            'reset_token' => $user->getResetToken(),
+            'reset_token_expiry' => $user->getResetTokenExpiry(),
+            'verification_token' => $user->getVerificationToken(),
+            'is_verified' => $user->getIsVerified()
         ];
     }
 }

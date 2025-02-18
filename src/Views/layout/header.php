@@ -42,5 +42,3 @@ if (session_status() === PHP_SESSION_NONE) {
             <li><a href="<?= BASE_URL ?>logout">Cerrar Sesión</a></li>
     </nav>
 <?php endif; ?>
-
- 

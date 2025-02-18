@@ -27,6 +27,10 @@
         //$_SERVER['REQUEST_URI'] almacena la cadena de texto que hay después del nombre del host en la URL
             $action = trim($action, '/');
 
+            // Separar la ruta base de los parámetros GET
+            $parts = explode('?', $action);
+            $action = $parts[0];
+
             $param = null;
             preg_match('/[0-9]+$/', $action, $match);
         

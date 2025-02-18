@@ -35,14 +35,20 @@ class OrderController {
             }
     
             $cart = $_SESSION['cart'] ?? [];
-
-            $stockError = $this->checkStock($cart);
-            if ($stockError) {
-                $_SESSION['error'] = $stockError;
-                header('Location: cart'); 
-                exit;
+    
+            // Verificar si el pago se hizo con PayPal
+            $isPayPal = isset($_POST['paypal_order_id']);
+    
+            // Si no es PayPal, verificar stock antes de continuar
+            if (!$isPayPal) {
+                $stockError = $this->checkStock($cart);
+                if ($stockError) {
+                    $_SESSION['error'] = $stockError;
+                    header('Location: cart');
+                    exit;
+                }
             }
-
+    
             $totalCost = array_reduce($cart, fn($carry, $item) => $carry + ($item['precio'] * $item['cantidad']), 0);
     
             $orderData = [
@@ -53,37 +59,41 @@ class OrderController {
                 'coste' => $totalCost,
                 'estado' => 'pendiente',
                 'fecha' => date('Y-m-d'),
-                'hora' => date('H:i:s')
+                'hora' => date('H:i:s'),
+                'metodo_pago' => $isPayPal ? 'PayPal' : 'Transferencia'
             ];
     
             $order = Order::fromArray($orderData);
     
             if ($order->validation()) {
-                //Crear el pedido y sus lineas
                 $orderId = $this->orderService->createOrderWithLines($order, $cart);
     
                 if ($orderId) {
-                    //Actualizar el stock de los productos
                     foreach ($cart as $item) {
                         $this->productService->updateStock($item['id'], $item['cantidad']);
                     }
-
-                    //Enviar correo de confirmacion
+    
+                    // Enviar correo de confirmación
                     $emailSender = new EmailSender();
-                    $customerEmail = $_SESSION['user_email'];
-                    $customerName = $_SESSION['user'];
-                    $totalCost = array_reduce($cart, fn($carry, $item) => $carry + ($item['precio'] * $item['cantidad']), 0);
-
                     $emailSender->sendOrderConfirmation(
-                        $customerEmail, 
+                        $_SESSION['user_email'], 
                         $orderId, 
                         $cart, 
                         $totalCost, 
-                        $customerName
+                        $_SESSION['user']
                     );
     
-                    unset($_SESSION['cart']); //Vaciar el carrito
-                    header('Location: orderSuccess'); //Redirigir a una página de éxito
+                    // Vaciar carrito
+                    unset($_SESSION['cart']);
+                    setcookie('cart', '', time() - 3600, '/');
+    
+                    // Si el pago fue con PayPal, responder con JSON
+                    if ($isPayPal) {
+                        echo json_encode(['success' => true, 'redirect' => BASE_URL . 'orderSuccess']);
+                        exit;
+                    }
+    
+                    header('Location: orderSuccess');
                     exit;
                 } else {
                     $_SESSION['errores'] = ['general' => 'Error al crear el pedido'];
@@ -176,6 +186,27 @@ class OrderController {
     
         header('Location: ' . BASE_URL . 'adminOrders');
         exit;
+    }
+
+
+
+    private function validatePayPalPayment($orderId, $expectedAmount) {
+        $clientId = 'AV6E4QJr36DZTOTt7fjHFGoKjwF-5UYGFuoty4l4OBeIwi7Galu3oQOBrFS0b_bwLGrY5SQp9ozZlitN';
+        $secret = 'TU_SECRET_PAYPAL';
+    
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, "https://api-m.sandbox.paypal.com/v2/checkout/orders/$orderId");
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Authorization: Basic " . base64_encode("$clientId:$secret"),
+            "Content-Type: application/json"
+        ]);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = json_decode(curl_exec($ch), true);
+        curl_close($ch);
+    
+        return isset($response['status']) && $response['status'] === 'COMPLETED' && 
+               isset($response['purchase_units'][0]['amount']['value']) && 
+               (float)$response['purchase_units'][0]['amount']['value'] == (float)$expectedAmount;
     }
 }
 ?>

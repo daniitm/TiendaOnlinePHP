@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'david/tienda25',
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
-        'reference' => null,
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => '6e75797d286d990c5d3da7bd51681c1877341366',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         'david/tienda25' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
-            'reference' => null,
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '6e75797d286d990c5d3da7bd51681c1877341366',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

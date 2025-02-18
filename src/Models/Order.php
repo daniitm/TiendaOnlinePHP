@@ -13,7 +13,8 @@ class Order {
         private float $coste,
         private string $estado,
         private string $fecha,
-        private string $hora
+        private string $hora,
+        private string|null $payment_id = null 
     ) {}
 
     public static function fromArray(array $data): Order {
@@ -26,7 +27,8 @@ class Order {
             coste: (float)($data['coste'] ?? 0),
             estado: $data['estado'] ?? '',
             fecha: $data['fecha'] ?? date('Y-m-d'),
-            hora: $data['hora'] ?? date('H:i:s')
+            hora: $data['hora'] ?? date('H:i:s'),
+            payment_id: $data['payment_id'] ?? null
         );
     }
 
@@ -122,6 +124,14 @@ class Order {
 
     public function getHora(): string {
         return $this->hora;
+    }
+
+    public function getPaymentId(): ?string {
+        return $this->payment_id;
+    }
+
+    public function setPaymentId(?string $payment_id): void {
+        $this->payment_id = $payment_id;
     }
 
     // Setters

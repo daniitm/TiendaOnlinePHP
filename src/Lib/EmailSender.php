@@ -73,4 +73,77 @@ class EmailSender {
         </html>
         ";
     }
+
+    public function sendPasswordResetEmail($email, $resetLink) {
+        try {
+            $this->mailer->setFrom($_ENV['SMTP_FROM_EMAIL'], $_ENV['SMTP_FROM_NAME']);
+            $this->mailer->addAddress($email);
+            $this->mailer->isHTML(true);
+            $this->mailer->CharSet = 'UTF-8';
+            $this->mailer->Subject = "Restablecimiento de contraseña";
+            
+            $body = $this->generatePasswordResetEmailBody($resetLink);
+            $this->mailer->Body = $body;
+
+            if ($this->mailer->send()) {
+                error_log("Correo de restablecimiento enviado correctamente a $email");
+                return true;
+            } else {
+                error_log("Error al enviar correo de restablecimiento: " . $this->mailer->ErrorInfo);
+                return false;
+            }
+        } catch (Exception $e) {
+            error_log("Excepción al enviar correo de restablecimiento: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function generatePasswordResetEmailBody($resetLink) {
+        return "
+        <html>
+        <body>
+            <h2>Restablecimiento de Contraseña</h2>
+            <p>Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para continuar:</p>
+            <p><a href='$resetLink'>Restablecer Contraseña</a></p>
+            <p>Si no has solicitado este cambio, puedes ignorar este correo.</p>
+        </body>
+        </html>
+        ";
+    }
+
+    public function sendVerificationEmail($email, $verificationLink) {
+        try {
+            $this->mailer->setFrom($_ENV['SMTP_FROM_EMAIL'], $_ENV['SMTP_FROM_NAME']);
+            $this->mailer->addAddress($email);
+            $this->mailer->isHTML(true);
+            $this->mailer->CharSet = 'UTF-8';
+            $this->mailer->Subject = "Verifica tu cuenta";
+            
+            $body = $this->generateVerificationEmailBody($verificationLink);
+            $this->mailer->Body = $body;
+    
+            if ($this->mailer->send()) {
+                error_log("Correo de verificación enviado correctamente a $email");
+                return true;
+            } else {
+                error_log("Error al enviar correo de verificación: " . $this->mailer->ErrorInfo);
+                return false;
+            }
+        } catch (Exception $e) {
+            error_log("Excepción al enviar correo de verificación: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    private function generateVerificationEmailBody($verificationLink) {
+        return "
+        <html>
+        <body>
+            <h2>Verifica tu cuenta</h2>
+            <p>Gracias por registrarte. Por favor, haz clic en el siguiente enlace para verificar tu cuenta:</p>
+            <p><a href='$verificationLink'>Verificar cuenta</a></p>
+        </body>
+        </html>
+        ";
+    }
 }
