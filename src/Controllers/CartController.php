@@ -32,16 +32,21 @@ class CartController {
                 $product = $this->productService->getProductById((int)$productId);
     
                 if ($product) {
-                    // Agregar al carrito en la sesión
-                    $_SESSION['cart'][$productId] = [
-                        'id' => $product->getId(),
-                        'nombre' => $product->getNombre(),
-                        'precio' => $product->getPrecio(),
-                        'cantidad' => ($_SESSION['cart'][$productId]['cantidad'] ?? 0) + 1
-                    ];
-                    
-                    // Guardar el carrito en una cookie
-                    setcookie('cart', json_encode($_SESSION['cart']), time() + (86400 * 30), "/");
+                    $stockDisponible = $product->getStock();
+                    $cantidadActual = $_SESSION['cart'][$productId]['cantidad'] ?? 0;
+    
+                    if ($cantidadActual < $stockDisponible) {
+                        $_SESSION['cart'][$productId] = [
+                            'id' => $product->getId(),
+                            'nombre' => $product->getNombre(),
+                            'precio' => $product->getPrecio(),
+                            'cantidad' => $cantidadActual + 1
+                        ];
+                        
+                        setcookie('cart', json_encode($_SESSION['cart']), time() + (86400 * 30), "/");
+                    } else {
+                        $_SESSION['error'] = "No puedes agregar más unidades de {$product->getNombre()}. Stock disponible: $stockDisponible.";
+                    }
                 }
             }
             header('Location: listProducts');
@@ -66,6 +71,17 @@ class CartController {
             header('Location: Auth/login');
             exit;
         }
+    
+        $cart = $_SESSION['cart'] ?? [];
+        foreach ($cart as $item) {
+            $product = $this->productService->getProductById((int)$item['id']);
+            if ($product && $item['cantidad'] > $product->getStock()) {
+                $_SESSION['error'] = "No puedes finalizar la compra. El producto {$item['nombre']} solo tiene {$product->getStock()} unidades disponibles.";
+                header('Location: cart');
+                exit;
+            }
+        }
+    
         header('Location: checkoutForm');
         exit;
     }

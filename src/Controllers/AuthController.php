@@ -31,16 +31,15 @@ class AuthController {
                     
                     // Generar token de verificación
                     $verificationToken = bin2hex(random_bytes(32));
+                    $verificationTokenExpiry = time() + 600; // Token válido por 10 minutos
                     $user->setVerificationToken($verificationToken);
+                    $user->setVerificationTokenExpiry($verificationTokenExpiry);
                     
                     try {
                         if ($this->userServices->registerUser($user)) {
-                            // Enviar correo de verificación
-                            $verificationLink = BASE_URL . "Auth/verifyEmail?token=" . $verificationToken;
-                            $this->emailSender->sendVerificationEmail($user->getEmail(), $verificationLink);
-                            
-                            $_SESSION['success'] = "Se ha enviado un correo de verificación a tu dirección de email.";
-                            $this->pages->render('Auth/registerSuccess');
+                            // Enviar correo de verificación con token en cabecera
+                            $this->emailSender->sendVerificationEmail($user->getEmail(), $verificationToken);
+                            $this->pages->render('Auth/enterVerificationToken');
                             return;
                         }
                     } catch (Exception $err) {
@@ -116,14 +115,13 @@ class AuthController {
                 return;
             }
     
-            $token = bin2hex(random_bytes(32)); // Genera un token seguro
-            $expiry = time() + 3600; // Token válido por 1 hora
+            $token = bin2hex(random_bytes(32));
+            $expiry = time() + 600; // Token válido por 10 minutos
     
             if ($this->userServices->setResetToken($email, $token, $expiry)) {
-                $resetLink = BASE_URL . "Auth/resetPassword?token=" . $token;
-                $this->emailSender->sendPasswordResetEmail($email, $resetLink);
-                $_SESSION['success'] = "Se ha enviado un enlace de restablecimiento a tu correo.";
-                $this->pages->render('Auth/login');
+                $this->emailSender->sendPasswordResetEmail($email, $token);
+                $_SESSION['success'] = "Se han enviado instrucciones de restablecimiento a tu correo.";
+                $this->pages->render('Auth/enterResetToken');
             } else {
                 $_SESSION['error'] = "Hubo un problema al procesar tu solicitud.";
                 $this->pages->render('Auth/forgotPassword');
@@ -133,21 +131,44 @@ class AuthController {
         }
     }
 
-    public function resetPassword($token = null) {
+    public function validateResetToken() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $token = $_POST['token'] ?? '';
+            $token = $_POST['reset_token'] ?? '';
+            
+            if (empty($token)) {
+                $_SESSION['error'] = "Token no proporcionado.";
+                $this->pages->render('Auth/enterResetToken');
+                return;
+            }
+    
+            $user = $this->userServices->getUserByResetToken($token);
+            if (!$user || $this->userServices->isTokenExpired($user)) {
+                $_SESSION['error'] = "El token no es válido o ha expirado.";
+                $this->pages->render('Auth/enterResetToken');
+                return;
+            }
+    
+            $this->pages->render('Auth/resetPassword', ['reset_token' => $token]);
+        } else {
+            $this->pages->render('Auth/enterResetToken');
+        }
+    }
+    
+    public function resetPassword() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $token = $_POST['reset_token'] ?? '';
             $newPassword = $_POST['new_password'] ?? '';
             $confirmPassword = $_POST['confirm_password'] ?? '';
     
             if (empty($token) || empty($newPassword) || empty($confirmPassword)) {
                 $_SESSION['error'] = "Todos los campos son obligatorios.";
-                $this->pages->render('Auth/resetPassword', ['token' => $token]);
+                $this->pages->render('Auth/resetPassword', ['reset_token' => $token]);
                 return;
             }
     
             if ($newPassword !== $confirmPassword) {
                 $_SESSION['error'] = "Las contraseñas no coinciden.";
-                $this->pages->render('Auth/resetPassword', ['token' => $token]);
+                $this->pages->render('Auth/resetPassword', ['reset_token' => $token]);
                 return;
             }
     
@@ -164,38 +185,68 @@ class AuthController {
                 $this->pages->render('Auth/login');
             } else {
                 $_SESSION['error'] = "Hubo un problema al actualizar la contraseña.";
-                $this->pages->render('Auth/resetPassword', ['token' => $token]);
+                $this->pages->render('Auth/resetPassword', ['reset_token' => $token]);
             }
         } else {
-            if (empty($token)) {
-                $_SESSION['error'] = "Token no proporcionado.";
-                $this->pages->render('Auth/forgotPassword');
-                return;
-            }
-            $this->pages->render('Auth/resetPassword', ['token' => $token]);
+            $this->pages->render('Auth/forgotPassword');
         }
     }
 
-    public function verifyEmail($token = null) {
-        if (empty($token)) {
-            $_SESSION['error'] = "Token de verificación no proporcionado.";
-            $this->pages->render('Auth/login');
-            return;
-        }
+    public function validateVerificationToken() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $token = $_POST['verification_token'] ?? '';
+            
+            if (empty($token)) {
+                $_SESSION['error'] = "Token no proporcionado.";
+                $this->pages->render('Auth/enterVerificationToken');
+                return;
+            }
     
-        $user = $this->userServices->getUserByVerificationToken($token);
-        if (!$user) {
-            $_SESSION['error'] = "Token de verificación inválido.";
-            $this->pages->render('Auth/login');
-            return;
-        }
+            $user = $this->userServices->getUserByVerificationToken($token);
+            if (!$user || $this->userServices->isVerificationTokenExpired($user)) {
+                $_SESSION['error'] = "El token no es válido o ha expirado.";
+                $this->pages->render('Auth/enterVerificationToken');
+                return;
+            }
     
-        if ($this->userServices->verifyUser($user->getEmail())) {
-            $_SESSION['success'] = "Email verificado con éxito. Ahora puedes iniciar sesión.";
-            $this->pages->render('Auth/login');
+            if ($this->userServices->verifyUser($user->getEmail())) {
+                $_SESSION['success'] = "Cuenta verificada con éxito. Ahora puedes iniciar sesión.";
+                $this->pages->render('Auth/login');
+            } else {
+                $_SESSION['error'] = "Hubo un problema al verificar tu cuenta.";
+                $this->pages->render('Auth/enterVerificationToken');
+            }
         } else {
-            $_SESSION['error'] = "Hubo un problema al verificar tu email.";
-            $this->pages->render('Auth/login');
+            $this->pages->render('Auth/enterVerificationToken');
+        }
+    }
+
+    public function verifyEmail() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $token = $_POST['verification_token'] ?? '';
+            
+            if (empty($token)) {
+                $_SESSION['error'] = "Token no proporcionado.";
+                $this->pages->render('Auth/enterVerificationToken');
+                return;
+            }
+    
+            $user = $this->userServices->getUserByVerificationToken($token);
+            if (!$user || $this->userServices->isVerificationTokenExpired($user)) {
+                $_SESSION['error'] = "El token no es válido o ha expirado.";
+                $this->pages->render('Auth/enterVerificationToken');
+                return;
+            }
+    
+            if ($this->userServices->verifyUser($user->getEmail())) {
+                $_SESSION['success'] = "Cuenta verificada con éxito. Puedes iniciar sesión ahora.";
+                $this->pages->render('Auth/login');
+            } else {
+                $_SESSION['error'] = "Hubo un problema al verificar tu cuenta.";
+                $this->pages->render('Auth/enterVerificationToken');
+            }
+        } else {
+            $this->pages->render('Auth/enterVerificationToken');
         }
     }
 }

@@ -1,6 +1,6 @@
 <h3>Restablecer Contraseña</h3>
 <form action="<?= BASE_URL ?>Auth/resetPassword" method="POST">
-    <input type="hidden" name="token" value="<?= $token ?>">
+    <input type="hidden" name="reset_token" value="<?= $reset_token ?>">
     <label for="new_password">Nueva Contraseña:</label>
     <input type="password" name="new_password" required>
     <br><br>

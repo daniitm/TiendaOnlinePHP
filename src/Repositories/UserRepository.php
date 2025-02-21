@@ -15,7 +15,7 @@ class UserRepository {
 
     public function registerUser(User $usuario): bool {
         try {
-            $ins = $this->db->prepare("INSERT INTO usuarios (nombre, apellidos, email, password, rol, verification_token, is_verified) VALUES (:nombre, :apellidos, :email, :password, :rol, :verification_token, :is_verified)");
+            $ins = $this->db->prepare("INSERT INTO usuarios (nombre, apellidos, email, password, rol, verification_token, verification_token_expiry, is_verified) VALUES (:nombre, :apellidos, :email, :password, :rol, :verification_token, :verification_token_expiry, :is_verified)");
     
             $ins->bindValue(':nombre', $usuario->getNombre());
             $ins->bindValue(':apellidos', $usuario->getApellidos());
@@ -23,6 +23,7 @@ class UserRepository {
             $ins->bindValue(':password', $usuario->getPassword());
             $ins->bindValue(':rol', $usuario->getRol());
             $ins->bindValue(':verification_token', $usuario->getVerificationToken());
+            $ins->bindValue(':verification_token_expiry', $usuario->getVerificationTokenExpiry());
             $ins->bindValue(':is_verified', false);
     
             return $ins->execute();
@@ -31,11 +32,25 @@ class UserRepository {
             return false;
         }
     }
+
+    public function setVerificationToken(string $email, string $token, int $expiry): bool {
+        try {
+            $stmt = $this->db->prepare("UPDATE usuarios SET verification_token = :token, verification_token_expiry = :expiry WHERE email = :email");
+            $stmt->bindValue(':token', $token);
+            $stmt->bindValue(':expiry', $expiry);
+            $stmt->bindValue(':email', $email);
+            return $stmt->execute();
+        } catch (PDOException $err) {
+            error_log("Error al establecer el token de verificacion: " . $err->getMessage());
+            return false;
+        }
+    }
     
     public function getUserByVerificationToken(string $token): ?User {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM usuarios WHERE verification_token = :token LIMIT 1");
+            $stmt = $this->db->prepare("SELECT * FROM usuarios WHERE verification_token = :token AND verification_token_expiry > :now LIMIT 1");
             $stmt->bindValue(':token', $token);
+            $stmt->bindValue(':now', time());
             $stmt->execute();
     
             $data = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -43,15 +58,15 @@ class UserRepository {
                 return User::fromArray($data);
             }
             return null;
-        } catch (PDOException $err) {
-            error_log("Error al obtener el usuario por token de verificación: " . $err->getMessage());
+        } catch (PDOException $e) {
+            error_log("Error al obtener el usuario por token de verificación: " . $e->getMessage());
             return null;
         }
     }
     
     public function verifyUser(string $email): bool {
         try {
-            $stmt = $this->db->prepare("UPDATE usuarios SET is_verified = true, verification_token = NULL WHERE email = :email");
+            $stmt = $this->db->prepare("UPDATE usuarios SET is_verified = 1, verification_token = NULL, verification_token_expiry = NULL WHERE email = :email");
             $stmt->bindValue(':email', $email);
             return $stmt->execute();
         } catch (PDOException $err) {
@@ -119,8 +134,9 @@ class UserRepository {
 
     public function getUserByResetToken(string $token): ?User {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM usuarios WHERE reset_token = :token LIMIT 1");
+            $stmt = $this->db->prepare("SELECT * FROM usuarios WHERE reset_token = :token AND reset_token_expiry > :now LIMIT 1");
             $stmt->bindValue(':token', $token);
+            $stmt->bindValue(':now', time());
             $stmt->execute();
     
             $data = $stmt->fetch(PDO::FETCH_ASSOC);

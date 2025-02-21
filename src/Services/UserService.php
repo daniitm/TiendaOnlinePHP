@@ -43,6 +43,14 @@ class UserService {
         return $this->userRepository->updatePasswordAndClearToken($email, $newPassword);
     }
 
+    public function setVerificationToken(string $email, string $token, int $expiry): bool {
+        return $this->userRepository->setVerificationToken($email, $token, $expiry);
+    }
+
+    public function isVerificationTokenExpired(User $user): bool {
+        return $user->getVerificationTokenExpiry() < time();
+    }
+
     public function getUserByVerificationToken(string $token): ?User {
         return $this->userRepository->getUserByVerificationToken($token);
     }

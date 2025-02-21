@@ -8,12 +8,13 @@
 
         private static $routes = [];
         //para ir añadiendo los métodos y las rutas en el tercer parámetro.
-        public static function add(string $method, string $action, Callable $controller):void{
+        public static function add(string $method, string $action, Callable $controller, Callable $middleware = null):void{
+
             //die($action);
             $action = trim($action, '/');
         
-            self::$routes[$method][$action] = $controller;
-        
+            self::$routes[$method][$action] = ['controller' => $controller, 'middleware' => $middleware];
+       
         }
     
         // Este método se encarga de obtener el sufijo de la URL que permitirá seleccionar
@@ -40,16 +41,20 @@
                 $action=preg_replace('/'.$match[0].'/',':id',$action);//quitamos la primera parte que se repite siempre (clinicarouter)
             }
             
-            $fn = self::$routes[$method][$action] ?? null;
+            $route = self::$routes[$method][$action] ?? null;
 
-            if ($fn) {
-                $callback = self::$routes[$method][$action];
-                echo call_user_func($callback, $param);
+            if ($route) {
+                $controller = $route['controller'];
+                $middleware = $route['middleware'];
+    
+                if ($middleware) {
+                    $middleware();
+                }
+    
+                echo call_user_func($controller, $param);
             } else {
                 header('Location: /Tienda25/not-found');
-                //ErrorController::error404();
             }
         }
     }
-?>
 

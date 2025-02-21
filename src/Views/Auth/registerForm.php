@@ -33,7 +33,6 @@
 </form>
 
 <?php
-// Limpiar errores después de mostrarlos
 if (isset($_SESSION['errores'])) {
     unset($_SESSION['errores']);
 }

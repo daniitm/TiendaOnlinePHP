@@ -20,7 +20,6 @@
     <?php endif; ?>
     <br><br>
 
-    <button type="submit">Comprar con Método Normal</button>
 </form>
 
 <br><br>

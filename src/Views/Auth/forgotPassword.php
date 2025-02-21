@@ -3,7 +3,7 @@
     <label for="email">Correo Electrónico:</label>
     <input type="email" name="email" required>
     <br><br>
-    <input type="submit" value="Enviar enlace de restablecimiento">
+    <input type="submit" value="Enviar instrucciones de restablecimiento">
 </form>
 <?php if (isset($_SESSION['error'])): ?>
     <p class="error"><?= $_SESSION['error'] ?></p>

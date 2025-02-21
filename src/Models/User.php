@@ -14,6 +14,7 @@ class User {
         private ?string $resetToken = null,
         private ?int $resetTokenExpiry = null,
         private ?string $verificationToken = null,
+        private ?int $verificationTokenExpiry = null,
         private bool $isVerified = false
     ){}           
 
@@ -93,6 +94,14 @@ class User {
         return $this->verificationToken;
     }
 
+    public function setVerificationTokenExpiry(?int $expiry): void {
+        $this->verificationTokenExpiry = $expiry;
+    }
+
+    public function getVerificationTokenExpiry(): ?int {
+        return $this->verificationTokenExpiry;
+    }
+
     public function setIsVerified(bool $isVerified): void {
         $this->isVerified = $isVerified;
     }
@@ -141,6 +150,7 @@ class User {
             resetToken: $data['reset_token'] ?? null,
             resetTokenExpiry: $data['reset_token_expiry'] ?? null,
             verificationToken: $data['verification_token'] ?? null,
+            verificationTokenExpiry: $data['verification_token_expiry'] ?? null,
             isVerified: $data['is_verified'] ?? false
         );
     }
@@ -156,6 +166,7 @@ class User {
             'reset_token' => $user->getResetToken(),
             'reset_token_expiry' => $user->getResetTokenExpiry(),
             'verification_token' => $user->getVerificationToken(),
+            'verification_token_expiry' => $user->getVerificationTokenExpiry(),
             'is_verified' => $user->getIsVerified()
         ];
     }

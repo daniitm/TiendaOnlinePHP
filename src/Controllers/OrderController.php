@@ -67,6 +67,12 @@ class OrderController {
     
             if ($order->validation()) {
                 $orderId = $this->orderService->createOrderWithLines($order, $cart);
+
+                if ($orderId === null) {
+                    $_SESSION['errores'] = ['general' => 'Error al procesar el pago y crear el pedido'];
+                    header('Location: checkoutForm');
+                    exit;
+                }
     
                 if ($orderId) {
                     foreach ($cart as $item) {
@@ -186,27 +192,6 @@ class OrderController {
     
         header('Location: ' . BASE_URL . 'adminOrders');
         exit;
-    }
-
-
-
-    private function validatePayPalPayment($orderId, $expectedAmount) {
-        $clientId = 'AV6E4QJr36DZTOTt7fjHFGoKjwF-5UYGFuoty4l4OBeIwi7Galu3oQOBrFS0b_bwLGrY5SQp9ozZlitN';
-        $secret = 'TU_SECRET_PAYPAL';
-    
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, "https://api-m.sandbox.paypal.com/v2/checkout/orders/$orderId");
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "Authorization: Basic " . base64_encode("$clientId:$secret"),
-            "Content-Type: application/json"
-        ]);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $response = json_decode(curl_exec($ch), true);
-        curl_close($ch);
-    
-        return isset($response['status']) && $response['status'] === 'COMPLETED' && 
-               isset($response['purchase_units'][0]['amount']['value']) && 
-               (float)$response['purchase_units'][0]['amount']['value'] == (float)$expectedAmount;
     }
 }
 ?>

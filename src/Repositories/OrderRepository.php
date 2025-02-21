@@ -28,9 +28,9 @@ class OrderRepository {
 
     public function saveOrderWithLines(Order $order, array $cart): ?int {
         try {
-            $this->db->query("START TRANSACTION");
-
-            //Insertar el pedido
+            $this->db->beginTransaction();
+    
+            // Insertar el pedido
             $orderData = [
                 'usuario_id' => $order->getUsuarioId(),
                 'provincia' => $order->getProvincia(),
@@ -39,18 +39,19 @@ class OrderRepository {
                 'coste' => $order->getCoste(),
                 'estado' => $order->getEstado(),
                 'fecha' => $order->getFecha(),
-                'hora' => $order->getHora()
+                'hora' => $order->getHora(),
+                'metodo_pago' => $order->getMetodoPago()
             ];
-
+    
             $this->db->insertarDatos('pedidos', $orderData);
-
-            //Obtener el ID del pedido recien insertado
+    
+            // Obtener el ID del pedido recién insertado
             $stmt = $this->db->prepare("SELECT LAST_INSERT_ID() as id");
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $orderId = $result['id'];
-
-            //Insertar las lineas de pedido
+    
+            // Insertar las líneas de pedido
             foreach ($cart as $item) {
                 $lineData = [
                     'pedido_id' => $orderId,
@@ -59,12 +60,14 @@ class OrderRepository {
                 ];
                 $this->db->insertarDatos('lineas_pedidos', $lineData);
             }
-
-            $this->db->query("COMMIT");
-
+    
+            // Si todo ha ido bien, confirmar la transacción
+            $this->db->commit();
+    
             return $orderId;
         } catch (PDOException $err) {
-            $this->db->query("ROLLBACK");
+            // Si hay un error, revertir la transacción
+            $this->db->rollBack();
             error_log("Error al guardar el pedido y sus líneas: " . $err->getMessage());
             return null;
         }
